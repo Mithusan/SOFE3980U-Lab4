@@ -9,7 +9,7 @@ pipeline {
   }
 
 agent {
-    'Built-In Node' {
+    kubernetes {
     label 'sample-app'
       defaultContainer 'jnlp'
       yaml """
