@@ -10,7 +10,7 @@ pipeline {
 
 agent {
     kubernetes {
-    label 'sample-app'
+    label 'topology.gke.io/zone=northamerica-northeast1-b'
       defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
