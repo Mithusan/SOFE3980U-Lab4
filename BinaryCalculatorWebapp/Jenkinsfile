@@ -1,18 +1,18 @@
 pipeline {
   environment {
-    //PROJECT = "REPLACE_WITH_YOUR_PROJECT_ID"
-	PROJECT = "milestone4-382901"
+    ////PROJECT = "REPLACE_WITH_YOUR_PROJECT_ID"
+	PROJECT = "d4-groupd1"
     APP_NAME = "binary-calculator2"
 	//CLUSTER = "REPLACE_WITH_YOUR_CLUSTER_NAME"
     CLUSTER = "sofe3980u"
     CLUSTER_ZONE = "northamerica-northeast1-b"
     IMAGE_TAG = "gcr.io/${PROJECT}/${APP_NAME}"
-    JENKINS_CRED = "milestone4-382901"
+    JENKINS_CRED = "d4-groupd1"
   }
   
 agent {
     kubernetes {
-	label 'sample-app'
+      label 'topology.gke.io/zone=northamerica-northeast1-b'
       defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
@@ -37,6 +37,7 @@ spec:
     tty: true
 """
 }
+
   }
   tools {
     maven 'maven' 
@@ -44,39 +45,20 @@ spec:
   stages {
     stage ('Init') {
       steps {
-	    checkout scm
         sh 'echo "Start of Job"'
+        sh 'ls -la'
       }
     }
-    //stage ('test') {
-    //  steps {
-    //    sh 'mvn clean test -f ./BinaryCalculatorWebapp/pom.xml'
-    //  }
-    //}
+    stage ('test') {
+      steps {
+        sh 'mvn clean test -f ./BinaryCalculatorWebapp/pom.xml'
+      }
+    }
     stage ('build') {
       steps {
         sh 'mvn package -DskipTests -f ./BinaryCalculatorWebapp/pom.xml'
       }
     }
-    stage('Build and push image with Container Builder') {
-      steps {
-        container('gcloud') {
-          sh "/builder/google-cloud-sdk/bin/gcloud builds submit -t ${IMAGE_TAG} ./BinaryCalculatorWebapp/"
-        }
-      }
-    }
-    stage ('Deploy') {
-      steps {
-        container('kubectl') {
-          withCredentials([googleServiceAccount(credentialsId: '106904043824582095378', projectId: 'd4-groupd1')]) {
-            sh """
-	      gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-              /builder/kubectl apply -f ./BinaryCalculatorWebapp/bc-deploy.yaml --record
-              /builder/kubectl set image deployment/${APP_NAME} ${APP_NAME}=${IMAGE_TAG}:${BUILD_NUMBER} --record
-            """
-          }
-        }
-      }
-    }
+    
   }
 }
