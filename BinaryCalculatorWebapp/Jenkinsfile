@@ -38,27 +38,46 @@ spec:
 """
 }
 
-  }
+}
   tools {
     maven 'maven' 
   }
   stages {
     stage ('Init') {
       steps {
+	    checkout scm
         sh 'echo "Start of Job"'
-        sh 'ls -la'
       }
     }
-    stage ('test') {
-      steps {
-        sh 'mvn clean test -f ./BinaryCalculatorWebapp/pom.xml'
-      }
-    }
+    //stage ('test') {
+    //  steps {
+    //    sh 'mvn clean test -f ./BinaryCalculatorWebapp/pom.xml'
+    //  }
+    //}
     stage ('build') {
       steps {
         sh 'mvn package -DskipTests -f ./BinaryCalculatorWebapp/pom.xml'
       }
     }
-    
+    stage('Build and push image with Container Builder') {
+      steps {
+        container('gcloud') {
+          sh "/builder/google-cloud-sdk/bin/gcloud builds submit -t ${IMAGE_TAG} ./BinaryCalculatorWebapp/"
+        }
+      }
+    }
+    stage ('Deploy') {
+      steps {
+        container('kubectl') {
+          withCredentials([googleServiceAccount(credentialsId: '106904043824582095378', projectId: 'd4-groupd1')]) {
+            sh """
+	      gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+              /builder/kubectl apply -f ./BinaryCalculatorWebapp/bc-deploy.yaml --record
+              /builder/kubectl set image deployment/${APP_NAME} ${APP_NAME}=${IMAGE_TAG}:${BUILD_NUMBER} --record
+            """
+          }
+        }
+      }
+    }
   }
 }
